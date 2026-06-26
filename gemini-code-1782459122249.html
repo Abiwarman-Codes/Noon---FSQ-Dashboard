@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>noon FSQ — Defect Quality Complaints Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --noon-yellow: #F5C518;
+    --noon-dark: #1A1A1A;
+    --noon-mid: #2C2C2C;
+    --bg: #0F0F0F;
+    --surface: #181818;
+    --card: #212121;
+    --card-border: #2E2E2E;
+    --text-primary: #FFFFFF;
+    --text-secondary: #A0A0A0;
+    --text-muted: #606060;
+    --accent-blue: #3987e5;
+    --accent-green: #1baf7a;
+    --accent-amber: #eda100;
+    --accent-red: #e34948;
+    --accent-violet: #9085e9;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--card-border);
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+  .noon-logo {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--noon-yellow);
+  }
+
+  .topbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--card-border);
+  }
+
+  .topbar-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.3px;
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-amber);
+  }
+
+  .refresh-btn {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .refresh-btn:hover {
+    background: var(--noon-yellow);
+    color: var(--noon-dark);
+    border-color: var(--noon-yellow);
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    padding: 24px 28px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .page-header-left h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .page-header-left p {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .date-badge {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--noon-yellow);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .filter-select {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23606060'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    min-width: 130px;
+    transition: border-color 0.15s;
+  }
+
+  .filter-select:focus { border-color: var(--noon-yellow); }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 18px 18px 14px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .kpi-card:hover { border-color: #3a3a3a; }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+
+  .kpi-card.yellow::before { background: var(--noon-yellow); }
+  .kpi-card.red::before { background: var(--accent-red); }
+  .kpi-card.green::before { background: var(--accent-green); }
+  .kpi-card.blue::before { background: var(--accent-blue); }
+  .kpi-card.violet::before { background: var(--accent-violet); }
+  .kpi-card.amber::before { background: var(--accent-amber); }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  .kpi-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .charts-grid-2col {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+  }
+
+  .chart-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .chart-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  .chart-canvas-wrap {
+    position: relative;
+  }
+
+  /* TABLE SECTION */
+  .table-section {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .table-header-left { display: flex; align-items: center; gap: 10px; }
+
+  .table-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .table-count {
+    background: rgba(245, 197, 24, 0.1);
+    border: 1px solid rgba(245, 197, 24, 0.2);
+    color: var(--noon-yellow);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .search-box {
+    background: var(--surface);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.15s;
+  }
+
+  .search-box:focus { border-color: var(--noon-yellow); }
+  .search-box::placeholder { color: var(--text-muted); }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .data-table th {
+    background: rgba(255,255,255,0.03);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+  }
+
+  .data-table th:hover { color: var(--text-secondary); }
+
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .badge-red { background: rgba(227, 73, 72, 0.15); color: #e87878; border: 1px solid rgba(227,73,72,0.2); }
+  .badge-amber { background: rgba(237, 161, 0, 0.15); color: #f0b73a; border: 1px solid rgba(237,161,0,0.2); }
+  .badge-green { background: rgba(27, 175, 122, 0.15); color: #3fc99a; border: 1px solid rgba(27,175,122,0.2); }
+  .badge-gray { background: rgba(255,255,255,0.07); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.08); }
+
+  /* LOADING & ERROR */
+  .loading-overlay, .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .loading-text { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+  .error-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--card-border);
+  }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-top: 1px solid var(--card-border);
+  }
+
+  .page-info { font-size: 11px; color: var(--text-muted); }
+  .page-btns { display: flex; gap: 6px; }
+
+  .page-btn {
+    background: var(--surface);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .page-btn:hover { border-color: #3a3a3a; color: var(--text-primary); }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .page-btn.active { background: rgba(245,197,24,0.1); border-color: rgba(245,197,24,0.3); color: var(--noon-yellow); }
+
+  .sort-arrow { display: inline-block; margin-left: 4px; opacity: 0.3; }
+  .sort-arrow.asc::after { content: '↑'; }
+  .sort-arrow.desc::after { content: '↓'; }
+  .sort-arrow.active { opacity: 1; color: var(--noon-yellow); }
+
+  .prod-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--card-border);
+    margin-top: 10px;
+  }
+
+  @media (max-width: 1100px) {
+    .charts-grid { grid-template-columns: 1fr 1fr; }
+    .charts-grid-2col { grid-template-columns: 1fr; }
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  mark {
+    background: rgba(245, 197, 24, 0.25);
+    color: var(--noon-yellow);
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+
+  .empty-row td {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="noon-logo">noon</div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-title">FSQ · Defect Quality Complaints · KSA</div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-badge" id="statusBadge">
+      <span class="status-dot"></span>
+      <span id="statusText">WAITING FOR FILE</span>
+    </div>
+    <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleFileUpload(event)">
+    <button class="refresh-btn" onclick="document.getElementById('csvFileInput').click()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      Upload CSV
+    </button>
+  </div>
+</header>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Defect Quality — Dashboard</h1>
+      <p id="headerSubtitle">Upload a CSV file to view data...</p>
+    </div>
+    <div class="date-badge" id="currentDateBadge">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 5h10" stroke="currentColor" stroke-width="1.2"/><path d="M4 1v2M8 1v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span id="currentDateText">Loading…</span>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Filter</span>
+    <select class="filter-select" id="regionFilter" onchange="applyFilters()">
+      <option value="">All Regions</option>
+    </select>
+    <select class="filter-select" id="categoryFilter" onchange="applyFilters()">
+      <option value="">All Categories</option>
+    </select>
+    <select class="filter-select" id="storeFilter" onchange="applyFilters()">
+      <option value="">All Stores</option>
+    </select>
+    <select class="filter-select" id="severityFilter" onchange="applyFilters()">
+      <option value="">All Severity</option>
+    </select>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card yellow">
+      <div class="kpi-label">Total Complaints (File)</div>
+      <div class="kpi-value" id="kpiTotal">—</div>
+      <div class="kpi-meta" id="kpiTotalMeta">Awaiting data…</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Defect Quality</div>
+      <div class="kpi-value" id="kpiDefect">—</div>
+      <div class="kpi-meta" id="kpiDefectMeta">Filtered match</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Regions Affected</div>
+      <div class="kpi-value" id="kpiRegions">—</div>
+      <div class="kpi-meta">Distinct cities / areas</div>
+    </div>
+    <div class="kpi-card violet">
+      <div class="kpi-label">Products Flagged</div>
+      <div class="kpi-value" id="kpiProducts">—</div>
+      <div class="kpi-meta">Unique SKUs / items</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Stores Involved</div>
+      <div class="kpi-value" id="kpiStores">—</div>
+      <div class="kpi-meta">Active complaint stores</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Avg per Store</div>
+      <div class="kpi-value" id="kpiAvg">—</div>
+      <div class="kpi-meta">Defect complaints</div>
+    </div>
+  </div>
+
+  <div class="section-label">Breakdown Analysis</div>
+  <div class="charts-grid" id="chartsSection">
+    <div class="chart-card">
+      <div class="chart-title">By Region</div>
+      <div class="chart-subtitle">Defect quality complaints per city / region</div>
+      <div class="chart-canvas-wrap" style="height:220px;">
+        <canvas id="regionChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">By Category</div>
+      <div class="chart-subtitle">Product category distribution</div>
+      <div class="chart-canvas-wrap" style="height:220px;">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Hourly Trend</div>
+      <div class="chart-subtitle">Complaints logged per hour</div>
+      <div class="chart-canvas-wrap" style="height:220px;">
+        <canvas id="hourlyChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid-2col">
+    <div class="chart-card">
+      <div class="chart-title">Top Stores</div>
+      <div class="chart-subtitle">Highest defect complaint volume</div>
+      <div class="chart-canvas-wrap" id="storeChartWrap" style="height:240px;">
+        <canvas id="storeChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Severity Split</div>
+      <div class="chart-subtitle">High / medium / low priority</div>
+      <div class="chart-canvas-wrap" style="height:240px;">
+        <canvas id="severityChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Filtered Defect Quality Complaints</div>
+  <div class="table-section">
+    <div class="table-header">
+      <div class="table-header-left">
+        <div class="table-title">Complaint Log</div>
+        <div class="table-count" id="tableCount">0 records</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search by store, product, region…" oninput="applyFilters()">
+      </div>
+    </div>
+    <div class="table-scroll" id="tableContainer">
+      <div class="loading-overlay">
+        <div class="loading-text" style="color:var(--noon-yellow);">Please click 'Upload CSV' in the top right to view your data.</div>
+      </div>
+    </div>
+    <div class="pagination" id="paginationBar" style="display:none;">
+      <div class="page-info" id="pageInfo"></div>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  noon FSQ Dashboard &nbsp;·&nbsp; Defect Quality Bucket &nbsp;·&nbsp; Saudi Arabia &nbsp;·&nbsp; Local CSV Upload
+</footer>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const DEFECT_BUCKET_KEYWORD = 'defect quality';
+const ROWS_PER_PAGE = 20;
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let allData = [];
+let todayData = [];
+let filteredData = [];
+let currentPage = 1;
+let sortCol = null;
+let sortDir = 'asc';
+let charts = {};
+let columns = [];
+
+// ─── COLOUR PALETTE ────────────────────────────────────────────────────────
+const PALETTE = ['#3987e5','#1baf7a','#eda100','#9085e9','#e34948','#f0b73a','#e87ba4','#eb6834'];
+
+// ─── UTILITY ───────────────────────────────────────────────────────────────
+function formatDate(d) {
+  return d.toLocaleDateString('en-SA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+
+function parseDate(str) {
+  if (!str) return null;
+  const s = str.toString().trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const parts = s.split(/[\/\-\.]/);
+  if (parts.length >= 3) {
+    const [a, b, c] = parts.map(Number);
+    if (c > 1900) {
+      const month = a <= 12 ? a : b;
+      const day   = a <= 12 ? b : a;
+      return `${c}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+  }
+  return null;
+}
+
+function parseHour(str) {
+  if (!str) return null;
+  const s = str.toString().trim();
+  const m = s.match(/(\d{1,2})[:\s](\d{2})\s*(AM|PM)?/i);
+  if (!m) return null;
+  let h = parseInt(m[1]);
+  const ampm = m[3] ? m[3].toUpperCase() : '';
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return h;
+}
+
+function highlight(text, query) {
+  if (!query) return escHtml(text);
+  const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escHtml(text).replace(new RegExp(`(${safe})`, 'gi'), '<mark>$1</mark>');
+}
+
+function escHtml(t) {
+  if (t === null || t === undefined) return '';
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function snakeName(arr, ...candidates) {
+  const lower = arr.map(c => c.toString().toLowerCase().trim());
+  for (const cand of candidates) {
+    const idx = lower.findIndex(c => c.includes(cand.toLowerCase()));
+    if (idx !== -1) return arr[idx];
+  }
+  return null;
+}
+
+function unique(arr) {
+  return [...new Set(arr.filter(Boolean))].sort();
+}
+
+function groupCount(arr, key) {
+  const map = {};
+  arr.forEach(row => {
+    const val = (row[key] || 'Unknown').toString().trim() || 'Unknown';
+    map[val] = (map[val] || 0) + 1;
+  });
+  return map;
+}
+
+// ─── COLUMN DETECTION ──────────────────────────────────────────────────────
+let COL = {};
+function detectColumns(headers) {
+  COL = {
+    date:     snakeName(headers, 'date', 'created', 'timestamp', 'time', 'logged'),
+    bucket:   snakeName(headers, 'bucket', 'category', 'type', 'complaint type', 'defect', 'issue'),
+    region:   snakeName(headers, 'region', 'city', 'area', 'location', 'zone'),
+    store:    snakeName(headers, 'store', 'branch', 'warehouse', 'hub', 'center', 'wh'),
+    product:  snakeName(headers, 'product', 'item', 'sku', 'description', 'goods'),
+    severity: snakeName(headers, 'severity', 'priority', 'urgency', 'level'),
+    hour:     snakeName(headers, 'hour', 'time', 'logged at'),
+    orderid:  snakeName(headers, 'order', 'order id', 'order no', 'order number'),
+    status:   snakeName(headers, 'status', 'state', 'resolution'),
+    remark:   snakeName(headers, 'remark', 'comment', 'note', 'description', 'details'),
+  };
+}
+
+// ─── LOCAL FILE UPLOAD ──────────────────────────────────────────────────────
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  updateStatus('READING...', '#3987e5');
+  document.getElementById('headerSubtitle').textContent = `Reading ${file.name}...`;
+
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    try {
+      const csvText = e.target.result;
+      processCSV(csvText, file.name);
+      updateStatus('FILE LOADED', '#1baf7a');
+    } catch (err) {
+      console.error(err);
+      showError("Failed to parse the CSV file. Please make sure it's properly formatted.");
+      updateStatus('ERROR', '#e34948');
+    }
+  };
+
+  reader.onerror = function() {
+    showError("Could not read the uploaded file.");
+    updateStatus('ERROR', '#e34948');
+  };
+
+  reader.readAsText(file);
+}
+
+function processCSV(csv, filename) {
+  const rows = parseCSV(csv);
+  if (rows.length < 2) { showError('No data rows found in the CSV'); return; }
+
+  columns = rows[0].map(c => c.trim());
+  detectColumns(columns);
+
+  allData = rows.slice(1).map(row => {
+    const obj = {};
+    columns.forEach((col, i) => { obj[col] = (row[i] || '').trim(); });
+    return obj;
+  }).filter(row => Object.values(row).some(v => v));
+
+  // Determine filtering behavior
+  todayData = allData.filter(row => {
+    // If we have a bucket/category column, filter by 'defect quality'
+    if (COL.bucket) {
+      const b = (row[COL.bucket] || '').toLowerCase();
+      return b.includes(DEFECT_BUCKET_KEYWORD) || b.includes('defect') || b.includes('quality');
+    }
+    return true; 
+  });
+
+  if(todayData.length === 0) {
+    todayData = allData; // Fallback: show everything if no defect bucket found
+  }
+
+  document.getElementById('headerSubtitle').textContent = `Displaying ${todayData.length} records from ${filename}`;
+  
+  buildFilters();
+  applyFilters();
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') { if (inQ && text[i+1] === '"') { cell += '"'; i++; } else inQ = !inQ; }
+    else if (ch === ',' && !inQ) { row.push(cell); cell = ''; }
+    else if ((ch === '\n' || ch === '\r') && !inQ) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => c));
+}
+
+// ─── FILTERS ────────────────────────────────────────────────────────────────
+function buildFilters() {
+  const regions    = unique(todayData.map(r => r[COL.region]));
+  const categories = unique(todayData.map(r => r[COL.bucket]));
+  const stores     = unique(todayData.map(r => r[COL.store]));
+  const severities = unique(todayData.map(r => r[COL.severity]));
+
+  fillSelect('regionFilter',   regions,    'All Regions');
+  fillSelect('categoryFilter', categories, 'All Categories');
+  fillSelect('storeFilter',    stores,     'All Stores');
+  fillSelect('severityFilter', severities, 'All Severity');
+}
+
+function fillSelect(id, options, allLabel) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${allLabel}</option>`;
+  options.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    if (o === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const region   = document.getElementById('regionFilter').value;
+  const category = document.getElementById('categoryFilter').value;
+  const store    = document.getElementById('storeFilter').value;
+  const severity = document.getElementById('severityFilter').value;
+  const search   = document.getElementById('searchBox').value.toLowerCase().trim();
+
+  filteredData = todayData.filter(row => {
+    if (region   && row[COL.region]   !== region)   return false;
+    if (category && row[COL.bucket]   !== category) return false;
+    if (store    && row[COL.store]    !== store)    return false;
+    if (severity && row[COL.severity] !== severity) return false;
+    if (search) {
+      const vals = Object.values(row).join(' ').toLowerCase();
+      if (!vals.includes(search)) return false;
+    }
+    return true;
+  });
+
+  if (sortCol) {
+    filteredData.sort((a, b) => {
+      const av = (a[sortCol] || '').toString().toLowerCase();
+      const bv = (b[sortCol] || '').toString().toLowerCase();
+      const n = av.localeCompare(bv);
+      return sortDir === 'asc' ? n : -n;
+    });
+  }
+
+  currentPage = 1;
+  renderKPIs();
+  renderCharts();
+  renderTable();
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const total   = allData.length;
+  const defect  = filteredData.length;
+  const regions = unique(filteredData.map(r => r[COL.region])).length;
+  const prods   = unique(filteredData.map(r => r[COL.product])).length;
+  const stores  = unique(filteredData.map(r => r[COL.store])).length;
+  const avg     = stores > 0 ? (defect / stores).toFixed(1) : '0';
+
+  set('kpiTotal',   total);
+  set('kpiDefect',  defect);
+  set('kpiRegions', regions);
+  set('kpiProducts', prods);
+  set('kpiStores',  stores);
+  set('kpiAvg',     avg);
+  
+  if (total > 0) {
+    set('kpiTotalMeta', `Total rows in uploaded CSV`);
+    set('kpiDefectMeta', `${Math.round(defect/total*100)}% of uploaded data`);
+  }
+}
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ─── CHARTS ─────────────────────────────────────────────────────────────────
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+}
+
+const CHART_DEFAULTS = {
+  color: '#A0A0A0',
+  borderColor: '#2E2E2E',
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e1e1e', borderColor: '#3a3a3a', borderWidth: 1, titleColor: '#fff', bodyColor: '#A0A0A0', padding: 10 } },
+  scales: { x: { ticks: { color: '#606060', font: { size: 10 } }, grid: { color: '#1e1e1e' } }, y: { ticks: { color: '#606060', font: { size: 10 } }, grid: { color: '#1e1e1e' } } }
+};
+
+function renderCharts() {
+  renderRegionChart();
+  renderCategoryChart();
+  renderHourlyChart();
+  renderStoreChart();
+  renderSeverityChart();
+}
+
+function renderRegionChart() {
+  destroyChart('region');
+  const data = groupCount(filteredData, COL.region || '_none');
+  const labels = Object.keys(data).sort((a,b) => data[b]-data[a]).slice(0,10);
+  const vals = labels.map(l => data[l]);
+
+  charts.region = new Chart(document.getElementById('regionChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: PALETTE.map(c => c + '99'), borderColor: PALETTE, borderWidth: 1.5, borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { ...CHART_DEFAULTS.plugins }, scales: { x: { ...CHART_DEFAULTS.scales.x, ticks: { color: '#606060', font: { size: 9 }, maxRotation: 30 } }, y: { ...CHART_DEFAULTS.scales.y, beginAtZero: true, ticks: { stepSize: 1, color: '#606060', font: { size: 10 } } } } }
+  });
+}
+
+function renderCategoryChart() {
+  destroyChart('category');
+  const data = groupCount(filteredData, COL.bucket || '_none');
+  const labels = Object.keys(data);
+  const vals = labels.map(l => data[l]);
+
+  charts.category = new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: vals, backgroundColor: PALETTE.map(c => c + 'cc'), borderColor: '#181818', borderWidth: 2, hoverOffset: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: true, position: 'right', labels: { color: '#A0A0A0', font: { size: 9 }, boxWidth: 10, padding: 8 } }, tooltip: CHART_DEFAULTS.plugins.tooltip } }
+  });
+}
+
+function renderHourlyChart() {
+  destroyChart('hourly');
+  const hours = Array.from({length: 24}, (_, i) => i);
+  const countByHour = {};
+  hours.forEach(h => countByHour[h] = 0);
+
+  filteredData.forEach(row => {
+    const h = COL.hour ? parseHour(row[COL.hour]) : parseHour(row[COL.date]);
+    if (h !== null && h >= 0 && h < 24) countByHour[h]++;
+  });
+
+  const labels = hours.map(h => h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h-12}pm`);
+  const vals = hours.map(h => countByHour[h]);
+
+  charts.hourly = new Chart(document.getElementById('hourlyChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ data: vals, borderColor: '#F5C518', backgroundColor: 'rgba(245,197,24,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#F5C518' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { ...CHART_DEFAULTS.plugins }, scales: { x: { ...CHART_DEFAULTS.scales.x, ticks: { color: '#606060', font: { size: 8 }, autoSkip: true, maxTicksLimit: 8 } }, y: { ...CHART_DEFAULTS.scales.y, beginAtZero: true, ticks: { stepSize: 1, color: '#606060', font: { size: 10 } } } } }
+  });
+}
+
+function renderStoreChart() {
+  destroyChart('store');
+  const data = groupCount(filteredData, COL.store || '_none');
+  const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const labels = sorted.map(e => e[0]);
+  const vals   = sorted.map(e => e[1]);
+
+  const wrap = document.getElementById('storeChartWrap');
+  const h = Math.max(200, labels.length * 36 + 40);
+  wrap.style.height = h + 'px';
+
+  charts.store = new Chart(document.getElementById('storeChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: '#3987e566', borderColor: '#3987e5', borderWidth: 1.5, borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { ...CHART_DEFAULTS.plugins, tooltip: { ...CHART_DEFAULTS.plugins.tooltip, callbacks: { label: ctx => ` ${ctx.parsed.x} complaints` } } }, scales: { x: { ...CHART_DEFAULTS.scales.x, beginAtZero: true, ticks: { stepSize: 1, color: '#606060', font: { size: 9 } } }, y: { ...CHART_DEFAULTS.scales.y, ticks: { color: '#A0A0A0', font: { size: 10 } } } } }
+  });
+}
+
+function renderSeverityChart() {
+  destroyChart('severity');
+  const data = groupCount(filteredData, COL.severity || '_none');
+  const labels = Object.keys(data);
+  const vals = labels.map(l => data[l]);
+
+  const bgColors = labels.map(l => {
+    const lw = l.toLowerCase();
+    if (lw.includes('high') || lw.includes('critical') || lw.includes('3')) return '#e3494899';
+    if (lw.includes('med') || lw.includes('2'))  return '#eda10099';
+    if (lw.includes('low') || lw.includes('1'))  return '#1baf7a99';
+    return '#3987e599';
+  });
+
+  charts.severity = new Chart(document.getElementById('severityChart'), {
+    type: 'pie',
+    data: { labels, datasets: [{ data: vals, backgroundColor: bgColors, borderColor: '#181818', borderWidth: 2, hoverOffset: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { color: '#A0A0A0', font: { size: 9 }, boxWidth: 10, padding: 10 } }, tooltip: CHART_DEFAULTS.plugins.tooltip } }
+  });
+}
+
+// ─── TABLE ──────────────────────────────────────────────────────────────────
+function renderTable() {
+  const container = document.getElementById('tableContainer');
+  const total = filteredData.length;
+  document.getElementById('tableCount').textContent = `${total} record${total !== 1 ? 's' : ''}`;
+
+  if (total === 0) {
+    container.innerHTML = `<table class="data-table"><tr class="empty-row"><td colspan="10">No defect quality complaints match current filters.</td></tr></table>`;
+    document.getElementById('paginationBar').style.display = 'none';
+    return;
+  }
+
+  const start = (currentPage - 1) * ROWS_PER_PAGE;
+  const pageRows = filteredData.slice(start, start + ROWS_PER_PAGE);
+  const search = document.getElementById('searchBox').value.trim();
+
+  const visibleCols = columns.filter(col => filteredData.some(r => r[col] && r[col].toString().trim()));
+  const priorityOrder = [COL.date, COL.hour, COL.region, COL.store, COL.product, COL.bucket, COL.severity, COL.status, COL.orderid, COL.remark];
+  const orderedCols = [...new Set([...priorityOrder.filter(c => c && visibleCols.includes(c)), ...visibleCols])];
+  const displayCols = orderedCols.slice(0, 10);
+
+  let html = '<table class="data-table"><thead><tr>';
+  displayCols.forEach(col => {
+    const isSort = sortCol === col;
+    const arrow = isSort ? `<span class="sort-arrow ${sortDir} active"></span>` : `<span class="sort-arrow asc"></span>`;
+    html += `<th onclick="sortBy('${escHtml(col)}')">${escHtml(col)} ${arrow}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  pageRows.forEach(row => {
+    html += '<tr>';
+    displayCols.forEach(col => {
+      const val = row[col] || '';
+      html += `<td>${renderCell(col, val, search)}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  const totalPages = Math.ceil(total / ROWS_PER_PAGE);
+  renderPagination(total, totalPages);
+}
+
+function renderCell(col, val, search) {
+  if (!val) return `<span style="color:var(--text-muted)">—</span>`;
+
+  const lc = col.toLowerCase();
+  const vl = val.toLowerCase();
+
+  if (lc.includes('sever') || lc.includes('prior') || lc.includes('urgent')) {
+    let cls = 'badge-gray', label = val;
+    if (vl.includes('high') || vl.includes('critical') || vl === '3') { cls = 'badge-red'; }
+    else if (vl.includes('med') || vl === '2') { cls = 'badge-amber'; }
+    else if (vl.includes('low') || vl === '1') { cls = 'badge-green'; }
+    return `<span class="badge ${cls}">${escHtml(label)}</span>`;
+  }
+
+  if (lc.includes('status') || lc.includes('state') || lc.includes('resol')) {
+    let cls = 'badge-gray';
+    if (vl.includes('open') || vl.includes('new') || vl.includes('pending')) cls = 'badge-amber';
+    else if (vl.includes('close') || vl.includes('resolv') || vl.includes('done')) cls = 'badge-green';
+    else if (vl.includes('escalat') || vl.includes('reject')) cls = 'badge-red';
+    return `<span class="badge ${cls}">${highlight(val, search)}</span>`;
+  }
+
+  if (lc.includes('region') || lc.includes('city') || lc.includes('area') || lc.includes('zone')) {
+    const idx = getRegionColorIdx(val);
+    const color = PALETTE[idx % PALETTE.length];
+    return `<span><span class="prod-dot" style="background:${color}"></span>${highlight(val, search)}</span>`;
+  }
+
+  if (lc.includes('bucket') || lc.includes('categor') || lc.includes('type') && !lc.includes('product')) {
+    const isDefect = vl.includes('defect') || vl.includes('quality');
+    return `<span class="badge ${isDefect ? 'badge-red' : 'badge-gray'}">${highlight(val, search)}</span>`;
+  }
+
+  return highlight(val, search);
+}
+
+const regionColorCache = {};
+let regionColorCounter = 0;
+function getRegionColorIdx(region) {
+  if (!(region in regionColorCache)) regionColorCache[region] = regionColorCounter++;
+  return regionColorCache[region];
+}
+
+function sortBy(col) {
+  if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortCol = col; sortDir = 'asc'; }
+  applyFilters();
+}
+
+function renderPagination(total, totalPages) {
+  const bar = document.getElementById('paginationBar');
+  if (totalPages <= 1) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+
+  const start = (currentPage - 1) * ROWS_PER_PAGE + 1;
+  const end   = Math.min(currentPage * ROWS_PER_PAGE, total);
+  document.getElementById('pageInfo').textContent = `Showing ${start}–${end} of ${total}`;
+
+  let btns = '';
+  btns += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>← Prev</button>`;
+  for (let p = Math.max(1, currentPage-2); p <= Math.min(totalPages, currentPage+2); p++) {
+    btns += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  }
+  btns += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Next →</button>`;
+  document.getElementById('pageBtns').innerHTML = btns;
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable();
+  document.getElementById('tableContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── STATUS & UI ────────────────────────────────────────────────────────────
+function updateStatus(text, color) {
+  document.getElementById('statusText').textContent = text;
+  const dot = document.querySelector('.status-dot');
+  if (dot) dot.style.background = color;
+}
+
+function showError(msg) {
+  const container = document.getElementById('tableContainer');
+  container.innerHTML = `
+    <div class="error-state">
+      <div class="error-icon" style="font-size: 32px; margin-bottom: 8px;">⚠️</div>
+      <div class="error-title">${escHtml(msg)}</div>
+    </div>`;
+  ['kpiTotal','kpiDefect','kpiRegions','kpiProducts','kpiStores','kpiAvg'].forEach(id => set(id, '—'));
+  document.getElementById('tableCount').textContent = '0 records';
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────
+document.getElementById('currentDateText').textContent = formatDate(new Date());
+</script>
+</body>
+</html>
